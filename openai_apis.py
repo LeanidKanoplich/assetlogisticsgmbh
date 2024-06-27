@@ -1,80 +1,27 @@
-import os
-import tempfile
-import uuid
-
-from openai import OpenAI
-import soundfile as sf
+import openai
 import config
 
-client = OpenAI(
-    api_key=config.OPENAI_API_KEY
-)
+openai.api_key = config.OPENAI_API_KEY
 
-OUTPUT_DIR = os.path.join(
-    tempfile.gettempdir(),
-    'openai_telegram',
-    'audios'
-)
-
-os.makedirs(
-    OUTPUT_DIR,
-    exist_ok=True
-)
-
-
-def transcript_audio(ogg_file_path: str, file_id: str) -> dict:
-    try:
-        audio_data, sample_rate = sf.read(ogg_file_path)
-        mp3_file_path = f'{OUTPUT_DIR}/{file_id}.mp3'
-        sf.write(mp3_file_path, audio_data, sample_rate)
-        audio_file = open(mp3_file_path, 'rb')
-        os.unlink(ogg_file_path)
-        os.unlink(mp3_file_path)
-        transcript = client.audio.transcriptions.create(
-            model='whisper-1',
-            file=audio_file,
-            response_format="text"
-        )
-        return {
-            'status': 1,
-            'transcript': transcript
-        }
-    except Exception as e:
-        print('Error at transcript_audio...')
-        print(e)
-        return {
-            'status': 0,
-            'transcript': ''
-        }
-
-
-def chat_completion(text: str) -> str:
-    try:
-        response = client.chat.completions.create(
-            model='gpt-3.5-turbo',
-            messages=[
-                {'role': 'system', 'content': 'You are a helpful assistant.'},
-                {'role': 'user', 'content': text}
-            ]
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        print('Error at chat_completion...')
-        print(e)
-        return 'We are facing an issue at this moment.'
-
-
-def text_to_speech(text: str) -> tuple[str, str]:
-    file_name = f'{uuid.uuid1()}.{config.AUDIO_FILE_FORMAT}'
-    audio_file_path = os.path.join(
-        config.OUTPUT_DIR,
-        file_name
+def chat_completion(prompt):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": prompt}
+        ]
     )
-    response = client.audio.speech.create(
-        model="tts-1",
-        voice="alloy",
-        input=text,
-        response_format=config.AUDIO_FILE_FORMAT
-    )
-    response.write_to_file(audio_file_path)
-    return audio_file_path, file_name
+    return response.choices[0].message['content'].strip()
+
+def text_to_speech(text):
+    # This is a placeholder function. You'll need to implement text-to-speech conversion.
+    # For example, using Google Text-to-Speech API or another TTS service.
+    audio_file_path = "/path/to/audio/file.mp3"
+    audio_file_name = "file.mp3"
+    return audio_file_path, audio_file_name
+
+def transcript_audio(file_path, file_id):
+    # This is a placeholder function. You'll need to implement audio transcription.
+    # For example, using Google Speech-to-Text API or another speech-to-text service.
+    transcript = "Transcribed text from audio"
+    return {"status": 1, "transcript": transcript}
